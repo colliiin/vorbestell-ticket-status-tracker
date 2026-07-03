@@ -1,0 +1,2 @@
+import { request } from "./client";
+export const createOrder = (body: unknown, key: string) => request<{ redirect_url: string }>("/api/orders", { method: "POST", headers: { "Idempotency-Key": key }, body: JSON.stringify(body) });

@@ -1,0 +1,2 @@
+import { statusLabels, type TicketStatus } from "../../types/api";
+export function TicketStatusBadge({ status }: { status: TicketStatus }) { return <span className={`badge ${status}`}>{statusLabels[status]}</span>; }

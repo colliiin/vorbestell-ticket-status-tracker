@@ -1,0 +1,1 @@
+export function QuantitySelector({ value, onChange }: { value: number; onChange: (value: number) => void }) { return <div className="qty"><button aria-label="Menge verringern" onClick={() => onChange(Math.max(0, value - 1))}>-</button><span>{value}</span><button aria-label="Menge erhöhen" onClick={() => onChange(value + 1)}>+</button></div>; }

@@ -1,0 +1,3 @@
+import type { CartItem, Product } from "../../types/api";
+import { ProductCard } from "./ProductCard";
+export function ProductGrid({ products, cart, onQuantity }: { products: Product[]; cart: CartItem[]; onQuantity: (product: Product, quantity: number) => void }) { return <section className="grid">{products.map((product) => <ProductCard key={product.id} product={product} quantity={cart.find((item) => item.product.id === product.id)?.quantity || 0} onQuantity={(quantity) => onQuantity(product, quantity)} />)}</section>; }

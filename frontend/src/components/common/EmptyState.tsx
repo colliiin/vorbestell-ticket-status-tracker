@@ -1,0 +1,2 @@
+import type { ReactNode } from "react";
+export function EmptyState({ title, text, action }: { title: string; text: string; action?: ReactNode }) { return <section className="state"><h1>{title}</h1><p>{text}</p>{action}</section>; }

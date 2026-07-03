@@ -1,0 +1,2 @@
+import type { CartItem } from "../../types/api";
+export function CartSummary({ cart }: { cart: CartItem[] }) { const total = cart.reduce((sum, item) => sum + Number(item.product.price) * item.quantity, 0); return <>{cart.map((item) => <p className="row" data-testid="cart-item" key={item.product.id}><span>{item.quantity}x {item.product.name}</span><b>{(Number(item.product.price) * item.quantity).toFixed(2)} EUR</b></p>)}<p className="row total"><span>Summe</span><b>{total.toFixed(2)} EUR</b></p></>; }

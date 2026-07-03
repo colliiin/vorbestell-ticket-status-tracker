@@ -1,0 +1,1 @@
+export function LoadingState({ text = "Wird geladen..." }: { text?: string }) { return <section className="state"><h1>{text}</h1></section>; }

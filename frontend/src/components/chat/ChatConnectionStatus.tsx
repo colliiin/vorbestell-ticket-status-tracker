@@ -1,0 +1,1 @@
+export function ChatConnectionStatus({ status }: { status: string }) { return <div className="conn">Chat: {status}</div>; }

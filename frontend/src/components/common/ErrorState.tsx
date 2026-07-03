@@ -1,0 +1,2 @@
+import type { ReactNode } from "react";
+export function ErrorState({ title = "Fehler", text, action }: { title?: string; text: string; action?: ReactNode }) { return <section className="state"><h1>{title}</h1><p className="error">{text}</p>{action}</section>; }

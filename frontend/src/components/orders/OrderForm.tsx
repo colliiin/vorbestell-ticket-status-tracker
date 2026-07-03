@@ -1,0 +1,5 @@
+import { useState } from "react";
+import type { CartItem } from "../../types/api";
+import { createOrder } from "../../api/orders";
+import { CartSummary } from "./CartSummary";
+export function OrderForm({ cart, clearCart }: { cart: CartItem[]; clearCart: () => void }) { const [name, setName] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); async function submit() { setBusy(true); setError(""); try { const result = await createOrder({ customer_name: name.trim(), items: cart.map((item) => ({ product_id: item.product.id, quantity: item.quantity })) }, crypto.randomUUID()); clearCart(); location.href = result.redirect_url; } catch (err) { setError(err instanceof Error ? err.message : "Bestellung fehlgeschlagen"); setBusy(false); } } return <><CartSummary cart={cart} /><label>Name<input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Dein Name" /></label>{error && <p className="error">{error}</p>}<button disabled={!name.trim() || busy} onClick={submit}>{busy ? "Wird gesendet..." : "Bestellung absenden"}</button></>; }

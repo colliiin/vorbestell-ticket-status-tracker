@@ -1,0 +1,20 @@
+export type TicketStatus = "open" | "in_progress" | "ready_for_pickup" | "completed" | "not_completed";
+export type PublicProduct = { id: number; name: string; description: string; price: string; image_url?: string | null };
+export type Product = PublicProduct;
+export type StaffProduct = PublicProduct & { is_active: boolean; sort_order: number; created_at: string; updated_at: string };
+export type ProductCreateInput = { name: string; description: string; price: string; image_url?: string | null; is_active: boolean; sort_order: number };
+export type ProductUpdateInput = Partial<ProductCreateInput>;
+export type ProductListResponse = { items: StaffProduct[]; page: number; page_size: number; total: number };
+export type CartItem = { product: Product; quantity: number };
+export type TicketItem = { product_id: number; quantity: number; product_name_snapshot: string; unit_price_snapshot: string };
+export type PublicTicket = { customer_name: string; status: TicketStatus; created_at: string; closed_at?: string | null; items: TicketItem[] };
+export type StaffTicket = { id: number; customer_name: string; status: TicketStatus; created_at: string; updated_at: string; closed_at?: string | null; last_customer_message_at?: string | null; last_staff_message_at?: string | null; items: TicketItem[] };
+export type TicketListItem = Omit<StaffTicket, "items" | "closed_at"> & { has_unread_customer_message: boolean };
+export type TicketListResponse = { items: TicketListItem[]; page: number; page_size: number; total: number };
+export type StatsResponse = Record<"total" | TicketStatus, number> & { total_revenue: string };
+export type ChatMessage = { id: number; ticket_id: number; sender_type: "customer" | "owner" | "admin" | "system"; message: string; created_at: string };
+export type User = { id: number; username: string; role: "owner" | "admin" };
+export type WsEvent = { type: "chat_message"; data: ChatMessage } | { type: "status_changed"; data: { ticket_id: number; old_status: TicketStatus; new_status: TicketStatus; message: string; created_at: string } } | { type: "error"; data: { message: string } };
+export const statusLabels: Record<TicketStatus, string> = { open: "Offen", in_progress: "In Bearbeitung", ready_for_pickup: "Bereit zur Abholung", completed: "Erfolgreich abgeschlossen", not_completed: "Nicht abgeschlossen" };
+export const closedStatuses: TicketStatus[] = ["completed", "not_completed"];
+export function formatTime(value?: string | null) { return value ? new Intl.DateTimeFormat(undefined, { dateStyle: "short", timeStyle: "short" }).format(new Date(value)) : "-"; }

@@ -107,6 +107,32 @@ npm run test:e2e:headed
 
 Bei Fehlern speichert Playwright Screenshots, Videos bei Fehlern und Traces beim ersten Retry unter `frontend/test-results/`. Der Smoke-Test verwendet eindeutig markierte `E2E Produkt ...`- und `E2E Kunde ...`-Daten. Produkte werden im Cleanup nur anhand des exakten E2E-Namens deaktiviert; normale Produkte werden nicht veraendert und Tickets werden nicht geloescht.
 
+## CI / GitHub Actions
+
+Die GitHub-Actions-CI laeuft bei jedem Push auf `main` und bei Pull Requests gegen `main`. Es gibt keine Deployment-Schritte und keine Produktions-Secrets im Workflow.
+
+Die CI fuehrt diese Jobs aus:
+
+- Backend-Tests mit Python 3.12 und `python -m pytest` im Ordner `backend`.
+- Frontend-Tests und Frontend-Build mit Node.js 22, `npm ci`, `npm run test -- --run` und `npm run build` im Ordner `frontend`.
+- Einen leichten Docker-Compose-Check mit `docker compose config`.
+
+Die gleichen Pruefungen koennen lokal so ausgefuehrt werden:
+
+```bash
+docker compose exec backend python -m pytest
+cd frontend
+npm ci
+npm run test -- --run
+npm run build
+```
+
+Optionaler Compose-Check:
+
+```bash
+docker compose config
+```
+
 ## Chat und Tickets
 
 WebSocket-Events sind typisiert (`chat_message`, `status_changed`, `error`). Statuswechsel erscheinen live im Kunden- und Staff-Chat. Abgeschlossene Tickets (`completed`, `not_completed`) bleiben lesbar, aber neue Chatnachrichten werden abgelehnt, bis das Ticket wieder geoeffnet wird.

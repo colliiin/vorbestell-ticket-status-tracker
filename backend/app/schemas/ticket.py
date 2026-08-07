@@ -11,11 +11,14 @@ class TicketItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class PublicTicketOut(BaseModel):
+    ticket_number: str
     customer_name: str
     status: TicketStatus
     created_at: datetime
+    status_changed_at: datetime
     closed_at: datetime | None = None
     items: list[TicketItemOut]
+    total_price: Decimal
     model_config = ConfigDict(from_attributes=True)
 
 class StaffTicketOut(BaseModel):

@@ -8,6 +8,6 @@ COPY tests ./tests
 COPY alembic ./alembic
 COPY alembic.ini .
 COPY entrypoint.sh .
-RUN chmod +x /app/entrypoint.sh
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 EXPOSE 8000
 CMD ["/app/entrypoint.sh"]

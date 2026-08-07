@@ -137,6 +137,30 @@ docker compose config
 
 WebSocket-Events sind typisiert (`chat_message`, `status_changed`, `error`). Statuswechsel erscheinen live im Kunden- und Staff-Chat. Abgeschlossene Tickets (`completed`, `not_completed`) bleiben lesbar, aber neue Chatnachrichten werden abgelehnt, bis das Ticket wieder geoeffnet wird.
 
+## Kunden-Status-Tracker
+
+Die private Kunden-Ticketseite zeigt oberhalb des Chats Ticketnummer, aktuellen Bearbeitungsstand, Bestellzeitpunkt, letzte Statusaenderung, bestellte Produkte mit Snapshot-Preisen und den Gesamtpreis. Der Fortschritt verwendet ausschliesslich die vorhandenen Backend-Statuswerte:
+
+- `open`: Vorbestellung eingegangen
+- `in_progress`: Wird bearbeitet
+- `ready_for_pickup`: Bereit zur Abholung
+- `completed`: Abgeschlossen
+- `not_completed`: Nicht abgeschlossen als alternative letzte Stufe
+
+Statuswechsel werden ueber das bestehende `status_changed`-WebSocket-Event in die geoeffnete Kundenansicht uebertragen. Status, aktive Fortschrittsstufe, Beschreibung und Aenderungszeit aktualisieren sich ohne Neuladen; die Chatverbindung wird dabei weiterverwendet.
+
+Lokale Pruefungen fuer den Tracker:
+
+```bash
+docker compose exec backend python -m pytest
+cd frontend
+npm run test -- --run
+npm run build
+npm run test:e2e
+```
+
+Der WebSocket-Manager liegt weiterhin im Speicher einer Backend-Instanz. Bei mehreren Instanzen muessen Status- und Chat-Broadcasts ueber einen gemeinsamen Dienst wie Redis verteilt werden.
+
 ## Statistik
 
 Admins sehen unter `/dashboard/admin` Ticketzaehler, Umsatz, einfache Statusgrafiken und Zeitraumfilter. Ohne Filter zeigt die Seite persistente Allzeitwerte; mit Zeitraumfilter werden aktuelle Tickets nach Erstellungsdatum ausgewertet.
@@ -153,7 +177,13 @@ Produktbilder werden als optionale externe `http`-/`https`-Bild-URL gespeichert.
 
 Lokal verwendet `caddy/Caddyfile` bewusst HTTP fuer `http://localhost`.
 
-Fuer Produktion `caddy/Caddyfile.production.example` als Vorlage verwenden, `DOMAIN=echte-domain.de`, `APP_ENV=production`, `COOKIE_SECURE=true`, explizite `ALLOWED_ORIGINS` und einen starken `SESSION_SECRET` setzen. Die App verweigert unsichere Produktionswerte wie localhost-Domain, Wildcard-Origin oder Platzhalter-Secret.
+Fuer die Produktion unter `https://ich-bin-hier.de` die Datei `.env.production.example` nach `.env` kopieren, alle `change-me`-Werte ersetzen und `caddy/Caddyfile.production.example` als produktive Caddy-Konfiguration verwenden. Die Vorlage setzt `DOMAIN=ich-bin-hier.de`, `APP_ENV=production`, `COOKIE_SECURE=true` und `ALLOWED_ORIGINS=https://ich-bin-hier.de`. Die App verweigert unsichere Produktionswerte wie localhost-Domain, Wildcard-Origin oder Platzhalter-Secret.
+
+Produktionsstart nach dem Setzen der echten Geheimnisse:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.production.yml up -d --build
+```
 
 ## Wichtige Sicherheitshinweise
 

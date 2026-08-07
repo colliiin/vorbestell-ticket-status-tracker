@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ChatMessage, TicketStatus, WsEvent } from "../types/api";
+import type { ChatMessage, StatusChangedData, WsEvent } from "../types/api";
 
 type Status = "Verbinde..." | "Verbunden" | "Getrennt";
 
-export function useChat(url: string, enabled = true, onStatusChanged?: (status: TicketStatus) => void) {
+export function useChat(url: string, enabled = true, onStatusChanged?: (update: StatusChangedData) => void) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [status, setStatus] = useState<Status>("Verbinde...");
   const [error, setError] = useState("");
@@ -32,7 +32,7 @@ export function useChat(url: string, enabled = true, onStatusChanged?: (status: 
         try {
           const payload = JSON.parse(event.data) as WsEvent;
           if (payload.type === "chat_message") setMessages((current) => current.some((m) => m.id === payload.data.id) ? current : [...current, payload.data]);
-          else if (payload.type === "status_changed") statusChangedRef.current?.(payload.data.new_status);
+          else if (payload.type === "status_changed") statusChangedRef.current?.(payload.data);
           else if (payload.type === "error") setError(payload.data.message);
         } catch { setError("Eine Chatnachricht konnte nicht gelesen werden."); }
       };

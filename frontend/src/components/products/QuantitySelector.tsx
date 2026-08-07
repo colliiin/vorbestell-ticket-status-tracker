@@ -1,1 +1,8 @@
-export function QuantitySelector({ value, onChange }: { value: number; onChange: (value: number) => void }) { return <div className="qty"><button aria-label="Menge verringern" onClick={() => onChange(Math.max(0, value - 1))}>-</button><span>{value}</span><button aria-label="Menge erhöhen" onClick={() => onChange(value + 1)}>+</button></div>; }
+export function QuantitySelector({ value, onChange, productName }: { value: number; onChange: (value: number) => void; productName?: string }) {
+  const suffix = productName ? ` für ${productName}` : "";
+  return <div className="qty" role="group" aria-label={`Menge${suffix}`}>
+    <button type="button" aria-label={`Menge${suffix} verringern`} disabled={value === 0} onClick={() => onChange(Math.max(0, value - 1))}>−</button>
+    <output aria-live="polite" aria-label={`Aktuelle Menge${suffix}`}>{value}</output>
+    <button type="button" aria-label={`Menge${suffix} erhöhen`} onClick={() => onChange(value + 1)}>+</button>
+  </div>;
+}

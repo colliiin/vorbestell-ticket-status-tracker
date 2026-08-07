@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, selectinload
 from app.models import ChatMessage, IdempotencyKey, SenderType, StatusHistory, Ticket, TicketItem, TicketStatus, User
@@ -17,8 +18,38 @@ class TicketService:
     def __init__(self, db: Session):
         self.db = db
 
-    def public_by_token(self, token: str) -> Ticket | None:
-        return self.db.scalar(select(Ticket).where(Ticket.public_token == token).options(selectinload(Ticket.items)))
+    def public_by_token(self, token: str) -> dict[str, object] | None:
+        latest_status_change = (
+            select(func.max(StatusHistory.created_at))
+            .where(StatusHistory.ticket_id == Ticket.id)
+            .correlate(Ticket)
+            .scalar_subquery()
+        )
+        row = self.db.execute(
+            select(
+                Ticket,
+                func.coalesce(latest_status_change, Ticket.created_at).label("status_changed_at"),
+            )
+            .where(Ticket.public_token == token)
+            .options(selectinload(Ticket.items))
+        ).one_or_none()
+        if not row:
+            return None
+        ticket, status_changed_at = row
+        total_price = sum(
+            (item.unit_price_snapshot * item.quantity for item in ticket.items),
+            Decimal("0.00"),
+        )
+        return {
+            "ticket_number": f"VBT-{ticket.id:06d}",
+            "customer_name": ticket.customer_name,
+            "status": ticket.status,
+            "created_at": ticket.created_at,
+            "status_changed_at": status_changed_at,
+            "closed_at": ticket.closed_at,
+            "items": ticket.items,
+            "total_price": total_price,
+        }
 
     def list_staff(self, status: str | None, search: str | None, page: int, page_size: int) -> tuple[list[dict], int]:
         page = max(page, 1)
@@ -67,17 +98,18 @@ class TicketService:
         if old == new_status:
             return None, None
         ticket.status = new_status
+        changed_at = datetime.now(timezone.utc).replace(tzinfo=None)
         if new_status in (TicketStatus.completed, TicketStatus.not_completed):
-            ticket.closed_at = datetime.now(timezone.utc).replace(tzinfo=None)
+            ticket.closed_at = changed_at
         else:
             ticket.closed_at = None
         StatsService(self.db).ticket_status_changed(old, new_status)
-        self.db.add(StatusHistory(ticket_id=ticket.id, old_status=old.value, new_status=new_status.value, changed_by_user_id=user.id))
+        self.db.add(StatusHistory(ticket_id=ticket.id, old_status=old.value, new_status=new_status.value, changed_by_user_id=user.id, created_at=changed_at))
         text = f"Der Status wurde von {STATUS_LABELS[old.value]} zu {STATUS_LABELS[new_status.value]} geaendert."
-        system_message = ChatMessage(ticket_id=ticket.id, sender_type=SenderType.system, sender_user_id=None, message=text)
+        system_message = ChatMessage(ticket_id=ticket.id, sender_type=SenderType.system, sender_user_id=None, message=text, created_at=changed_at)
         self.db.add(system_message)
         self.db.commit()
         self.db.refresh(ticket)
         self.db.refresh(system_message)
-        event = StatusChangedEvent(data=StatusChangedData(ticket_id=ticket.id, old_status=old, new_status=new_status, message=text, created_at=system_message.created_at)).model_dump(mode="json")
+        event = StatusChangedEvent(data=StatusChangedData(ticket_id=ticket.id, old_status=old, new_status=new_status, message=text, created_at=changed_at)).model_dump(mode="json")
         return system_message, event

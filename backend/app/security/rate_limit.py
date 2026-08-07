@@ -16,6 +16,9 @@ class RateLimiter:
         hits.append(now)
         return True
 
+    def reset(self, key: str) -> None:
+        self._hits.pop(key, None)
+
 limiter = RateLimiter()
 
 def client_ip(request: Request) -> str:
@@ -28,3 +31,6 @@ def check_rest_rate(request: Request, bucket: str, limit: int, window_seconds: i
     key = f"{bucket}:{client_ip(request)}"
     if not limiter.allow(key, limit, window_seconds):
         raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="Zu viele Anfragen. Bitte versuche es spaeter erneut.")
+
+def reset_rest_rate(request: Request, bucket: str) -> None:
+    limiter.reset(f"{bucket}:{client_ip(request)}")

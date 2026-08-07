@@ -4,7 +4,7 @@
 
 - `GET /api/products`: liefert nur aktive Produkte, sortiert nach `sort_order` und Name. Felder: `id`, `name`, `description`, `price`, `image_url`.
 - `POST /api/orders` mit optionalem `Idempotency-Key`; Rate-Limit: 10 Bestellungen pro 10 Minuten und Client-IP.
-- `GET /api/public/tickets/{token}`: liefert nur oeffentliche Ticketdaten, keine interne ID und keinen Token.
+- `GET /api/public/tickets/{token}`: liefert nur oeffentliche Ticketdaten, keine interne ID und keinen Token. Zusaetzlich enthalten sind eine formatierte `ticket_number`, `status_changed_at`, Positions-Snapshots und `total_price`.
 - `GET /api/public/tickets/{token}/messages`
 
 ## Auth
@@ -17,7 +17,7 @@
 
 - `GET /api/staff/tickets?status=&search=&page=&page_size=`: liefert Listenitems mit letzter Aktivitaet und `has_unread_customer_message`.
 - `GET /api/staff/tickets/{id}`: liefert interne Staff-Details ohne privaten Public-Token.
-- `PATCH /api/staff/tickets/{id}/status`: benoetigt `X-CSRF-Token`, erzeugt Statushistorie, Systemnachricht und `status_changed`-WebSocket-Event.
+- `PATCH /api/staff/tickets/{id}/status`: benoetigt `X-CSRF-Token`, speichert Statushistorie und Systemnachricht und sendet erst danach das `status_changed`-WebSocket-Event.
 - `GET /api/staff/tickets/{id}/messages`
 
 ### Staff-Produkte

@@ -14,6 +14,8 @@ Indizes und Constraints: eindeutiger Benutzername, eindeutiger `public_token`, e
 
 Status `completed` und `not_completed` schliessen den Chat fuer neue Nachrichten. Die Historie und vorhandene Nachrichten bleiben lesbar.
 
+Der Kunden-Status-Tracker liest den letzten Eintrag aus `ticket_status_history`; solange noch kein Statuswechsel existiert, wird `tickets.created_at` als initialer Statuszeitpunkt verwendet. Ticketnummer und Gesamtpreis werden fuer den Response aus vorhandenen Daten abgeleitet, daher ist keine weitere Migration erforderlich.
+
 Produkte werden im MVP nicht regulaer hart geloescht. Deaktivierte Produkte bleiben in `products` erhalten und koennen spaeter wieder aktiviert werden. Der oeffentliche Produktendpunkt und die Bestellanlage beruecksichtigen nur `is_active=True`.
 
 `ticket_items` speichert `product_name_snapshot` und `unit_price_snapshot`. Dadurch behalten alte Tickets den damaligen Produktnamen und Preis, auch wenn das Produkt spaeter umbenannt, verteuert oder deaktiviert wird. Produktaktionen veraendern `ticket_stats` nicht.

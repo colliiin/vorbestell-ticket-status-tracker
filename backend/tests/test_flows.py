@@ -5,6 +5,7 @@ os.environ["ALLOWED_ORIGINS"] = "http://testserver"
 
 from datetime import datetime
 from decimal import Decimal
+from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -223,6 +224,17 @@ def test_ticket_item_snapshots_survive_product_changes(client):
     assert item["product_name_snapshot"] == "Active"
     assert Decimal(item["unit_price_snapshot"]) == Decimal("1.00")
 
+
+def test_public_ticket_includes_tracker_details_and_total_price(client):
+    token = client.post("/api/orders", json={"customer_name": "Max", "items": [{"product_id": 1, "quantity": 3}]}).json()["ticket_token"]
+    data = client.get(f"/api/public/tickets/{token}").json()
+    assert data["ticket_number"].startswith("VBT-")
+    assert data["status"] == "open"
+    assert data["status_changed_at"] == data["created_at"]
+    assert data["items"][0]["product_name_snapshot"] == "Active"
+    assert Decimal(data["items"][0]["unit_price_snapshot"]) == Decimal("1.00")
+    assert Decimal(data["total_price"]) == Decimal("3.00")
+
 def test_order_validation(client):
     assert client.post("/api/orders", json={"customer_name": "", "items": [{"product_id": 1, "quantity": 1}]}).status_code == 422
     assert client.post("/api/orders", json={"customer_name": "Max", "items": []}).status_code == 422
@@ -316,6 +328,61 @@ def test_status_change_history_and_system_message(client):
         assert "Status" in message.message
     finally:
         session.close()
+
+
+def test_public_ticket_uses_latest_status_change_time(client):
+    token = client.post("/api/orders", json={"customer_name": "Max", "items": [{"product_id": 1, "quantity": 1}]}).json()["ticket_token"]
+    session = TestingSession(); ticket_id = session.query(Ticket).first().id; session.close()
+    csrf = login(client)
+    assert client.patch(f"/api/staff/tickets/{ticket_id}/status", json={"status": "in_progress"}, headers={"X-CSRF-Token": csrf}).status_code == 200
+    data = client.get(f"/api/public/tickets/{token}").json()
+    session = TestingSession()
+    try:
+        history = session.query(StatusHistory).one()
+        assert datetime.fromisoformat(data["status_changed_at"]) == history.created_at
+    finally:
+        session.close()
+
+
+def test_successful_status_change_broadcasts_persisted_event(client, monkeypatch):
+    client.post("/api/orders", json={"customer_name": "Max", "items": [{"product_id": 1, "quantity": 1}]})
+    session = TestingSession(); ticket_id = session.query(Ticket).first().id; session.close()
+    csrf = login(client)
+    from app.routes import staff_tickets
+
+    async def assert_persisted(_room, payload):
+        check = TestingSession()
+        try:
+            assert check.get(Ticket, ticket_id).status == TicketStatus.in_progress
+        finally:
+            check.close()
+        assert payload["type"] in {"chat_message", "status_changed"}
+
+    broadcast = AsyncMock(side_effect=assert_persisted)
+    monkeypatch.setattr(staff_tickets.manager, "broadcast", broadcast)
+    response = client.patch(f"/api/staff/tickets/{ticket_id}/status", json={"status": "in_progress"}, headers={"X-CSRF-Token": csrf})
+    assert response.status_code == 200
+    assert broadcast.await_count == 2
+    status_event = next(call.args[1] for call in broadcast.await_args_list if call.args[1]["type"] == "status_changed")
+    assert status_event["data"]["new_status"] == "in_progress"
+    assert status_event["data"]["created_at"]
+
+
+def test_failed_status_change_does_not_broadcast_success(client, monkeypatch):
+    client.post("/api/orders", json={"customer_name": "Max", "items": [{"product_id": 1, "quantity": 1}]})
+    session = TestingSession(); ticket_id = session.query(Ticket).first().id; session.close()
+    csrf = login(client)
+    from app.routes import staff_tickets
+
+    def fail_update(*_args, **_kwargs):
+        raise RuntimeError("database write failed")
+
+    broadcast = AsyncMock()
+    monkeypatch.setattr(staff_tickets.TicketService, "update_status", fail_update)
+    monkeypatch.setattr(staff_tickets.manager, "broadcast", broadcast)
+    with pytest.raises(RuntimeError, match="database write failed"):
+        client.patch(f"/api/staff/tickets/{ticket_id}/status", json={"status": "in_progress"}, headers={"X-CSRF-Token": csrf})
+    broadcast.assert_not_awaited()
 
 def test_chat_message_persistence_service(client):
     client.post("/api/orders", json={"customer_name": "Max", "items": [{"product_id": 1, "quantity": 1}]})

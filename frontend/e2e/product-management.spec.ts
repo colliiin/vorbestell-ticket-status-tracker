@@ -154,9 +154,10 @@ test("product management and order smoke flow", async ({ page, request }) => {
     await page.getByPlaceholder("Dein Name").fill(customerName);
     await page.getByRole("button", { name: "Bestellung absenden" }).click();
     await page.waitForURL(/\/ticket\/[^/]+\/chat$/);
-    await expect(page.getByRole("heading", { name: customerName })).toBeVisible();
-    await expect(page.getByText(`1x ${productName}`)).toBeVisible();
-    await expect(page.getByText("Offen")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dein Bestellstatus" })).toBeVisible();
+    await expect(page.getByTestId("ticket-order-summary")).toContainText(customerName);
+    await expect(page.getByTestId("ticket-order-summary")).toContainText(productName);
+    await expect(page.getByTestId("current-ticket-status")).toContainText("Eingegangen");
     await expect(page.getByTestId("ticket-chat")).toBeVisible();
 
     await page.goto(`/dashboard/tickets?search=${encodeURIComponent(customerName)}`);
@@ -185,5 +186,42 @@ test("product management and order smoke flow", async ({ page, request }) => {
     await expectNoHorizontalOverflow(page);
   } finally {
     await deactivateProductsByName(request, createdProducts);
+  }
+});
+
+test("mobile customers can scan products, change quantity and reach the cart", async ({ page, request }) => {
+  const stamp = Date.now();
+  const productName = `E2E Sehr langes mobiles Produkt ${stamp} mit extra langem Namen`;
+  let csrf = "";
+
+  try {
+    csrf = await apiLogin(request);
+    const response = await request.post("/api/staff/products", {
+      data: { name: productName, description: "Eine absichtlich lange Beschreibung für die kompakte mobile Darstellung ohne unnötig hohe Produktkarte.", price: "12345.67", image_url: null, is_active: true, sort_order: 999 },
+      headers: { "X-CSRF-Token": csrf },
+    });
+    expect(response.ok()).toBeTruthy();
+
+    for (const width of [320, 360, 390, 430]) {
+      await page.setViewportSize({ width, height: width === 320 ? 568 : 844 });
+      await page.goto("/");
+      const card = publicProductCard(page, productName);
+      await expect(card).toBeVisible();
+      await expect(card.getByRole("img", { name: new RegExp(`Kein Bild für ${productName}`) })).toBeVisible();
+      await expect(card.getByText("12345.67 EUR")).toBeVisible();
+      await expect(card.getByRole("button", { name: `Menge für ${productName} verringern` })).toBeDisabled();
+      await expect(page.getByRole("link", { name: /Warenkorb öffnen/ })).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+    }
+
+    const card = publicProductCard(page, productName);
+    await card.getByRole("button", { name: `Menge für ${productName} erhöhen` }).click();
+    await expect(card.getByLabel("Aktuelle Menge für " + productName)).toHaveText("1");
+    await page.getByRole("link", { name: /Warenkorb öffnen, 1 Artikel/ }).click();
+    await expect(page).toHaveURL(/\/order$/);
+    await expect(page.getByTestId("cart-item").filter({ hasText: productName })).toContainText("1x");
+    await expectNoHorizontalOverflow(page);
+  } finally {
+    await deactivateProductsByName(request, [productName]);
   }
 });

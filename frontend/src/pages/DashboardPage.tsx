@@ -6,8 +6,10 @@ import { DashboardLayout } from "../components/layout/DashboardLayout";
 import { DeleteClosedTicketsButton } from "../components/tickets/DeleteClosedTicketsButton";
 import { TicketList } from "../components/tickets/TicketList";
 import { closedStatuses, type TicketListItem, type TicketStatus } from "../types/api";
+import { useAuth } from "../hooks/useAuth";
 
 export function DashboardPage() {
+  const auth = useAuth();
   const [tickets, setTickets] = useState<TicketListItem[]>([]);
   const [error, setError] = useState("");
   const [savingId, setSavingId] = useState<number | null>(null);
@@ -49,7 +51,7 @@ export function DashboardPage() {
 
   return <DashboardLayout>
     <section className="heroPanel"><h1>Dashboard</h1><p>Verwalte Bestellungen, chatte mit Kunden und pruefe den aktuellen Status.</p></section>
-    <div className="tiles"><a href="/dashboard/tickets"><MessageCircle /> Tickets verwalten</a><a href="/dashboard/products"><Package /> Produkte verwalten</a><a href="/dashboard/admin"><LayoutDashboard /> Statistik ansehen</a></div>
+    <div className="tiles"><a href="/dashboard/tickets"><MessageCircle /> Tickets verwalten</a><a href="/dashboard/products"><Package /> Produkte verwalten</a>{auth.user?.role === "admin" && <a href="/dashboard/admin"><LayoutDashboard /> Statistik ansehen</a>}</div>
     <section className="dashboardSection">
       <div className="sectionHead"><h2>Aktuelle Tickets</h2><div className="sectionActions"><DeleteClosedTicketsButton disabled={deletingClosed || closedCount === 0} onDelete={deleteClosed} /><a className="linkButton" href="/dashboard/tickets">Alle Tickets</a></div></div>
       {error ? <ErrorState title="Tickets konnten nicht geladen werden" text={error} /> : tickets.length ? <TicketList tickets={tickets} savingId={savingId} onStatusChange={changeStatus} /> : <p className="hint">Keine aktuellen Tickets.</p>}

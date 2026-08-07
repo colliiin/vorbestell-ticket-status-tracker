@@ -12,7 +12,7 @@ export function StaffTicketPage({ id }: { id: string }) {
   const [ticket, setTicket] = useState<StaffTicket | null>(null);
   const [error, setError] = useState("");
   const [savingStatus, setSavingStatus] = useState(false);
-  const chat = useChat(`/ws/staff/tickets/${id}`, Boolean(ticket), (status: TicketStatus) => setTicket((t) => t ? { ...t, status } : t));
+  const chat = useChat(`/ws/staff/tickets/${id}`, Boolean(ticket), (update) => setTicket((t) => t ? { ...t, status: update.new_status } : t));
 
   useEffect(() => {
     getTicket(id).then(setTicket).catch((e) => setError(e.message));

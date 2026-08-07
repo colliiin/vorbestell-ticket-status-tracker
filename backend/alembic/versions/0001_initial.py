@@ -6,6 +6,7 @@ Create Date: 2026-07-02
 """
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 
 revision = "0001_initial"
 down_revision = None
@@ -13,9 +14,9 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    userrole = sa.Enum("owner", "admin", name="userrole")
-    ticketstatus = sa.Enum("open", "in_progress", "ready_for_pickup", "completed", "not_completed", name="ticketstatus")
-    sendertype = sa.Enum("customer", "owner", "admin", "system", name="sendertype")
+    userrole = postgresql.ENUM("owner", "admin", name="userrole", create_type=False)
+    ticketstatus = postgresql.ENUM("open", "in_progress", "ready_for_pickup", "completed", "not_completed", name="ticketstatus", create_type=False)
+    sendertype = postgresql.ENUM("customer", "owner", "admin", "system", name="sendertype", create_type=False)
     userrole.create(op.get_bind(), checkfirst=True)
     ticketstatus.create(op.get_bind(), checkfirst=True)
     sendertype.create(op.get_bind(), checkfirst=True)

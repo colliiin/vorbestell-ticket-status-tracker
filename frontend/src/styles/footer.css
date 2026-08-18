@@ -1,0 +1,7 @@
+.siteFooter {
+  margin-top: 32px;
+  padding: 20px clamp(16px, 4vw, 48px);
+  border-top: 1px solid #dfe4df;
+  color: #52615c;
+  font-size: .9rem;
+}

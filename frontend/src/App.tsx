@@ -7,6 +7,7 @@ import { useCart } from "./hooks/useCart";
 import { AdminStatsPage } from "./pages/AdminStatsPage";
 import { CustomerTicketPage } from "./pages/CustomerTicketPage";
 import { DashboardPage } from "./pages/DashboardPage";
+import { ImpressumPage } from "./pages/ImpressumPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { OrderPage } from "./pages/OrderPage";
@@ -31,6 +32,7 @@ export function App() {
   if (path === "/order") return <OrderPage cartState={cartState} />;
   if (path.startsWith("/ticket/") && path.endsWith("/chat")) return <CustomerTicketPage token={path.split("/")[2]} />;
   if (path === "/login") return <LoginPage />;
+  if (path === "/impressum") return <ImpressumPage />;
   if (path === "/dashboard") return <RequireAuth><DashboardPage /></RequireAuth>;
   if (path === "/dashboard/products") return <RequireAuth><StaffProductsPage /></RequireAuth>;
   if (path === "/dashboard/products/new") return <RequireAuth><ProductEditorPage /></RequireAuth>;
